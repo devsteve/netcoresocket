@@ -1,4 +1,7 @@
 import React, { Component } from 'react';
+import Directionbutton from './buttons/Directionbutton';
+
+import socketClass from '../classes/socketClass';
 
 export class SocketView extends Component {
   
@@ -7,20 +10,13 @@ export class SocketView extends Component {
     this.state = { data: [], loading: false };
     //On async load use 
     //this.setState({ data: [], loading: false });  
-
-    let scheme = document.location.protocol === "https:" ? "wss" : "ws";
-    let port = document.location.port ? (":" + document.location.port) : "";
-    let connectionUrl = scheme+"://" + document.location.hostname + port + "/ws" ;
-
-    this.socket = new WebSocket(connectionUrl);
-
-    SocketView.connect(this.socket);
+    this.socketConnector = socketClass.get();
   }
 
 
   changeText(event) {
     console.log("sending: "+event.target.value);
-    this.socket.send(event.target.value);
+    this.socketConnector.send(event.target.value,function(message) { console.log(message); });
   }
 
   renderSocket(data) {
@@ -28,30 +24,14 @@ export class SocketView extends Component {
       <div>
           {data}
           <input type="text" onChange={this.changeText.bind(this)} />
-      </div>
+
+          <Directionbutton direction="Up" />
+
+          <Directionbutton direction="Down" />
+       </div>
       
     );
   }
-
-        
-  static connect(socket) {
-
-   
-      socket.onopen = function (event) {
-        console.log('Connection opened');
-      };
-      socket.onclose = function (event) {
-        console.log(event.code);
-        console.log(event.reason);
-      };
-     // socket.onerror = updateState;
-     socket.onmessage = function (event) {
-        console.log("Return "+event.data);  
-        console.log(event.data);
-      };
-
-     
-  };
 
   render() {
     let contents = this.state.loading
