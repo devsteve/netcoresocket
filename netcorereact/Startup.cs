@@ -7,9 +7,12 @@ using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using netcorereact.containers;
 
 namespace netcorereact
 {
@@ -100,15 +103,24 @@ namespace netcorereact
 
         private async Task Echo(HttpContext context, WebSocket webSocket)
         {
+            var pt = new PositionTracker();
+
+            Console.WriteLine("Received 1");
             var buffer = new byte[1024 * 4];
             WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             while (!result.CloseStatus.HasValue)
             {
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
-
                 result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
+            var bufferToString = Encoding.UTF8.GetString(buffer);
+            Console.WriteLine(bufferToString);
+            //todo see objects
+            var messageObject = JsonConvert.DeserializeObject<PositionTracker>(bufferToString);
+            Console.WriteLine(messageObject.message);
+
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
     }
+
 }
