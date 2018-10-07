@@ -5,6 +5,7 @@ import { Home } from './components/Home';
 import { FetchData } from './components/FetchData';
 import { Counter } from './components/Counter';
 import { SocketView } from './components/SocketView';
+import { Canvas } from './components/Canvas';
 
 
 export default class App extends Component {
@@ -17,6 +18,7 @@ export default class App extends Component {
         <Route path='/counter' component={Counter} />
         <Route path='/fetchdata' component={FetchData} />
         <Route path='/websocket' component={SocketView} />
+        <Route path='/canvas' component={Canvas} />
       </Layout>
     );
   }

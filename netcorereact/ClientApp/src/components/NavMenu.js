@@ -38,6 +38,11 @@ export class NavMenu extends Component {
                 <Glyphicon glyph='th-list' /> Socket
               </NavItem>
             </LinkContainer>
+            <LinkContainer to={'/canvas'}>
+              <NavItem>
+                <Glyphicon glyph='th-list' /> Canvas
+              </NavItem>
+            </LinkContainer>
           </Nav>
         </Navbar.Collapse>
       </Navbar>
