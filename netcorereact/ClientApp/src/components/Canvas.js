@@ -9,20 +9,36 @@ export class Canvas extends Component {
 
     this.canvas = {
       ctx : null,
-      sprite : null,
       dimension: {
         cWidth: 500,
-        cHeight: 500,
-        sWidth: 74,
-        sHeight: 54,
+        cHeight: 500
       } 
     };
+    this.sprite = {
+      src: null,
+      dimension: {
+        sWidth: 74,
+        sHeight: 54,
+      }
+    }
 
     this.objs = [
       {
         direction: 1, //0 for, 1 right, 2 down, 3 left
         posX : 10,
-        poxY: 10
+        posY: 500
+      },{
+        direction: 0, //0 for, 1 right, 2 down, 3 left
+        posX : 100,
+        posY: 500
+      },{
+        direction: 2, //0 for, 1 right, 2 down, 3 left
+        posX : 0,
+        posY: 300
+      },{
+        direction: 3, //0 for, 1 right, 2 down, 3 left
+        posX : 30,
+        posY: 0
       }
     ];
     
@@ -64,51 +80,93 @@ export class Canvas extends Component {
     this.canvas.ctx.fillStyle = '#b2b2b2';
     this.canvas.ctx.fillRect(0,0,this.canvas.dimension.cWidth,this.canvas.dimension.cHeight);  
 
-    let imgStr = '/images/OfVoM.png';
+    //let imgStr = '/images/OfVoM.png';
+    let imgStr = '/images/grunt.png';
     let img = document.createElement('IMG');
     img.src = imgStr;
     img.width = 370;
     img.height = 624;
 
-    this.canvas.sprite = img;
+    this.sprite.src = img;
+  }
+
+  /**
+   * Use take a position object and calculate the next obj ani frame and position
+   * @param {*} obj 
+   * @param {*} count 
+   * @param {*} sprite 
+   */
+  calcObjectMovement(obj,count,sprite) {
+     let sx = 0;
+     let sy = 0;
+      
+     let posx = 0;
+     let posy = 0;
+     
+     let sequence = 0;
+     let slideCount = count;
+
+     //Loop over count 0 - 4 (animation sprite has 4 walking frames)
+     sequence = Math.floor(count/4);
+     if(sequence > 0) {
+       slideCount = (count - (sequence * 4));
+     } else {
+       slideCount = count;
+     }
+
+    //Direction 0 for up. Sy starts at second as first is standing.
+     sx = obj.direction * sprite.dimension.sWidth;
+     sy = ((slideCount * sprite.dimension.sHeight) + sprite.dimension.sHeight);
+
+     switch(obj.direction) { 
+       case 0:
+         posx = obj.posX;
+         posy = obj.posY - (count * 5);
+       break;
+       case 1:
+         posx = obj.posX + (count * 4);
+         posy = obj.posY - (count * 4);
+       break;  
+       case 2:
+         posx = obj.posX + (count * 6);
+         posy = obj.posY;
+       break;  
+       case 3:
+         posx = obj.posX + (count * 4);
+         posy = obj.posY + (count * 4);
+       break;  
+       default:
+         posx = obj.posX;
+         posy = obj.posY;
+       break;
+     }
+     return {
+       frameX : sx,
+       frameY : sy,
+       posX : posx,
+       posY : posy
+     }
   }
 
   redraw(frame) {
-    //console.log('called'+frame);
     
-    
-
-    if(this.canvas.sprite && ((frame % 3) === 0)) { 
-      let count = (frame / 3);
-      let sx = 0;
-      let sy = 0;
-      let sequence = 0;
-      let slideCount = count;
-      let canvas = this.canvas;
+    //Divide by amount to slow up animation
+    if(this.canvas.sprite) { 
+      const count = frame;
+      const canvas = this.canvas;
+      const sprite = this.sprite;
+      const objectMove = this.calcObjectMovement;
 
       //Only if we're drawing clear
       this.canvas.ctx.clearRect(0,0,this.canvas.dimension.cWidth,this.canvas.dimension.cHeight);
 
-      //Loop over count 0 -5
-      sequence = Math.floor(count/5);
-      if(sequence > 0) {
-        slideCount = (count - (sequence * 5));
-      } else {
-        slideCount = count;
-      }
-
-      
       this.objs.forEach(obj => {
-          //forward
-          sx = obj.direction * canvas.dimension.swidth;
-          sy = (slideCount * canvas.dimension.sHeight);
-        
+          let objPos = objectMove(obj,count,sprite);
+          console.log(objPos);
           //Where S Source (image), D Destination (cavnas) void ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-          canvas.ctx.drawImage(canvas.sprite,sx,sy,canvas.dimension.sHeight,canvas.dimension.sWidth,10,10,canvas.dimension.sHeight,canvas.dimension.sWidth);
+          canvas.ctx.drawImage(sprite.src,objPos.frameX,objPos.frameY,canvas.dimension.sWidth,canvas.dimension.sHeight,objPos.posX,objPos.posY,canvas.dimension.sWidth,canvas.dimension.sHeight);
       });
 
-      
-      
     }
   }
 
