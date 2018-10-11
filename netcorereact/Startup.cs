@@ -116,7 +116,9 @@ namespace netcorereact
                     result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 
                 } while(!result.EndOfMessage);
-                //
+                
+                Console.WriteLine("EOM");
+
                 var bufferToString = Encoding.UTF8.GetString(buffer);
                 Console.WriteLine(bufferToString);
                 //todo see objects

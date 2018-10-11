@@ -1,10 +1,16 @@
 import React, { Component } from 'react';
+import socketClass from '../classes/socketClass';
 
 export class Canvas extends Component {
   
 
   constructor(props) {
     super(props);
+
+    //Socket setup
+    this.socketConnector = socketClass.get();
+
+    //Canvas Setup
     this.startPos = 0;
 
     this.canvas = {
@@ -22,7 +28,8 @@ export class Canvas extends Component {
       }
     }
 
-    this.objs = [
+    this.objs = [];
+    /*
       {
         direction: 1, //0 for, 1 right, 2 down, 3 left
         posX : 10,
@@ -41,6 +48,7 @@ export class Canvas extends Component {
         posY: 0
       }
     ];
+    */
     
     
 
@@ -51,7 +59,6 @@ export class Canvas extends Component {
   }
 
   nextFrame() {
-
     if(this.componentHasMounted) {
       this.startPos++;
       if(this.startPos%10 === 0) {
@@ -90,6 +97,47 @@ export class Canvas extends Component {
     this.sprite.src = img;
   }
 
+
+  setObjs(socketRet) {
+    
+    const $this = this;
+    console.log(socketRet);
+    if(!socketRet.objs) {
+      return;
+    }
+    socketRet.objs.forEach((obj) => {
+      
+      //Todo find and update objects
+      $this.objs = [
+        {
+          direction: obj.direction, //0 for, 1 right, 2 down, 3 left
+          posX : 10,
+          posY: 500
+        }];
+    });
+/**
+    this.objs = [
+      {
+        direction: 1, //0 for, 1 right, 2 down, 3 left
+        posX : 10,
+        posY: 500
+      },{
+        direction: 0, //0 for, 1 right, 2 down, 3 left
+        posX : 100,
+        posY: 500
+      },{
+        direction: 2, //0 for, 1 right, 2 down, 3 left
+        posX : 0,
+        posY: 300
+      },{
+        direction: 3, //0 for, 1 right, 2 down, 3 left
+        posX : 30,
+        posY: 0
+      }
+    ];
+    */
+  }
+
   /**
    * Use take a position object and calculate the next obj ani frame and position
    * @param {*} obj 
@@ -106,6 +154,13 @@ export class Canvas extends Component {
      let sequence = 0;
      let slideCount = count;
 
+     /**
+      * Movement scales, pixel amount based on dir
+      */
+     let horiScale = 6;
+     let vertiScale = 5;
+     let diagScale = 4;
+
      //Loop over count 0 - 4 (animation sprite has 4 walking frames)
      sequence = Math.floor(count/4);
      if(sequence > 0) {
@@ -121,28 +176,45 @@ export class Canvas extends Component {
      switch(obj.direction) { 
        case 0:
          posx = obj.posX;
-         posy = obj.posY - (count * 5);
+         posy = obj.posY - (count * vertiScale);
        break;
        case 1:
-         posx = obj.posX + (count * 4);
-         posy = obj.posY - (count * 4);
+         posx = obj.posX + (count * diagScale);
+         posy = obj.posY - (count * diagScale);
        break;  
        case 2:
-         posx = obj.posX + (count * 6);
+         posx = obj.posX + (count * horiScale);
          posy = obj.posY;
        break;  
        case 3:
-         posx = obj.posX + (count * 4);
-         posy = obj.posY + (count * 4);
+         posx = obj.posX + (count * diagScale);
+         posy = obj.posY + (count * diagScale);
+       break;  
+       case 4:
+         posx = obj.posX;
+         posy = obj.posY + (count * vertiScale);
+       break;  
+       case 5:
+         posx = obj.posX - (count * diagScale);
+         posy = obj.posY + (count * diagScale);
+       break;  
+       case 6:
+         posx = obj.posX - (count * horiScale);
+         posy = obj.posY;
+       break;  
+       case 7:
+         posx = obj.posX - (count * diagScale);
+         posy = obj.posY - (count * diagScale);
        break;  
        default:
+         // stay
          posx = obj.posX;
          posy = obj.posY;
        break;
      }
      return {
-       frameX : sx,
-       frameY : sy,
+       spriteX : sx,
+       spriteY : sy,
        posX : posx,
        posY : posy
      }
@@ -151,7 +223,7 @@ export class Canvas extends Component {
   redraw(frame) {
     
     //Divide by amount to slow up animation
-    if(this.canvas.sprite) { 
+    if(this.sprite.src) { 
       const count = frame;
       const canvas = this.canvas;
       const sprite = this.sprite;
@@ -162,9 +234,8 @@ export class Canvas extends Component {
 
       this.objs.forEach(obj => {
           let objPos = objectMove(obj,count,sprite);
-          console.log(objPos);
           //Where S Source (image), D Destination (cavnas) void ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-          canvas.ctx.drawImage(sprite.src,objPos.frameX,objPos.frameY,canvas.dimension.sWidth,canvas.dimension.sHeight,objPos.posX,objPos.posY,canvas.dimension.sWidth,canvas.dimension.sHeight);
+          canvas.ctx.drawImage(sprite.src,objPos.spriteX,objPos.spriteY,sprite.dimension.sWidth,sprite.dimension.sHeight,objPos.posX,objPos.posY,sprite.dimension.sWidth,sprite.dimension.sHeight);
       });
 
     }
@@ -178,10 +249,34 @@ export class Canvas extends Component {
     return (
       <div ref="tdiv">
         <canvas ref="canvas" width="500" height="500"/>
-        <img id='image' src='/images/OfVoM.png' />  
       </div>
     );
     //<img id='image' src='/images/OfVoM.png' /> 
+  }
+
+
+  directionInput(direction) {
+    let message = {
+      objs : [
+        { direction: direction }
+      ]
+    };
+    console.log("sending: "+message);
+    this.socketConnector.send(message,(message) => { this.setObjs(message);});
+  }
+
+  renderControls() {
+    const $this = this;
+    let setSendDirection = (direction) => { return function(){ $this.directionInput(direction); }; };
+
+    return (
+      <div>
+          <button onClick={setSendDirection(0)}>NN</button>
+          <button onClick={setSendDirection(1)}>NE</button>
+          <button onClick={setSendDirection(2)}>E</button>
+       </div>
+      
+    );
   }
 
   /**
@@ -194,7 +289,7 @@ export class Canvas extends Component {
       <div>
         <h1>View</h1>
         {canvas}
-        
+        {this.renderControls()}
       </div>
     );
   }

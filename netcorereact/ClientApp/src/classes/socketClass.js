@@ -77,6 +77,8 @@ class socketClass {
         message: message,
         key: key
       };
+      console.log(sendObj);
+      console.log(JSON.stringify(sendObj));
       this.socket.send(JSON.stringify(sendObj));
     }
 
