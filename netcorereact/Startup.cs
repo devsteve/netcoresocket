@@ -8,6 +8,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,17 +61,21 @@ namespace netcorereact
                 ReceiveBufferSize = 4 * 1024
             };
             app.UseWebSockets(webSocketOptions);
+
             app.Use(async (context, next) =>
             {
                 if (context.Request.Path == "/ws")
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {
+                        Console.WriteLine("Received Is WebSocket");
                         WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+
                         await Echo(context, webSocket);
                     }
                     else
                     {
+                        Console.WriteLine("400'd");
                         context.Response.StatusCode = 400;
                     }
                 }
@@ -97,37 +102,69 @@ namespace netcorereact
                 if (env.IsDevelopment())
                 {
                     spa.UseReactDevelopmentServer(npmScript: "start");
-                }
+                } 
             });
+        }
+
+        private String DecompileMessages(ArraySegment<byte> message) {
+              var bufferToString = Encoding.UTF8.GetString(message);
+                //todo see objects
+              var messageObject = JsonConvert.DeserializeObject<PositionTracker>(bufferToString);
+              return bufferToString;  
         }
 
         private async Task Echo(HttpContext context, WebSocket webSocket)
         {
             var pt = new PositionTracker();
 
-            Console.WriteLine("Received 2");
+            Console.WriteLine("Received 3");
             var buffer = new byte[1024 * 4];
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            var messages = new List<byte>();
+            string currentMessageKey = null;
+          //  WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             //While Open
-            while (!result.CloseStatus.HasValue) { 
+            //while (!result.CloseStatus.HasValue) { 
                 //Do while we don't have the end of a message
-                do {
-                    await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
-                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                
-                } while(!result.EndOfMessage);
-                
-                Console.WriteLine("EOM");
+            try {    
+                var (response, message) = await ReceiveFullMessage(webSocket,CancellationToken.None);
 
-                var bufferToString = Encoding.UTF8.GetString(buffer);
+                var bufferToString = Encoding.UTF8.GetString(message.ToArray());
                 Console.WriteLine(bufferToString);
-                //todo see objects
                 var messageObject = JsonConvert.DeserializeObject<PositionTracker>(bufferToString);
-                Console.WriteLine(messageObject.message);
-            }
 
-            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+
+                if(!String.IsNullOrEmpty(messageObject.key) && messageObject.key != currentMessageKey){
+                    Console.WriteLine("Writing and sending");
+                    currentMessageKey = messageObject.key; 
+
+                    var returnMessage = new ArraySegment<byte>(array: Encoding.ASCII.GetBytes(bufferToString),
+                                                                  offset: 0, 
+                                                                  count: response.Count);
+
+                    await webSocket.SendAsync(returnMessage, response.MessageType, response.EndOfMessage, CancellationToken.None);
+                }
+            } finally {
+                await webSocket.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "Closing", CancellationToken.None);
+            }
+        }
+
+
+        static async Task<(WebSocketReceiveResult, List<byte>)> ReceiveFullMessage(WebSocket socket, CancellationToken cancelToken)
+        {
+            WebSocketReceiveResult response;
+            var message = new List<byte>();
+
+            var buffer = new byte[4096];
+            do
+            {
+                response = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancelToken);
+                message.AddRange(new ArraySegment<byte>(buffer, 0, response.Count));
+            }
+            while (!response.EndOfMessage);
+            Console.WriteLine("end of message");    
+            return (response, message);
         }
     }
 
 }
+

@@ -28,7 +28,27 @@ export class Canvas extends Component {
       }
     }
 
-    this.objs = [];
+    this.user = {
+      name: "P1",
+      avatar: {
+        id: 1,
+        direction: 0, //0 for, 1 right, 2 down, 3 left
+        posX : 10,
+        posY: 400
+      }
+    };
+
+    this.external = {
+      users: [{
+        name: "P2",
+        avatar: {
+          id: 2,
+          direction: 0, //0 for, 1 right, 2 down, 3 left
+          posX : 10,
+          posY: 400
+        }
+      }]
+    };
     /*
       {
         direction: 1, //0 for, 1 right, 2 down, 3 left
@@ -97,24 +117,23 @@ export class Canvas extends Component {
     this.sprite.src = img;
   }
 
-
+  /**
+   * Update the objects from the server
+   * @param {*} socketRet 
+   */
   setObjs(socketRet) {
     
     const $this = this;
     console.log(socketRet);
-    if(!socketRet.objs) {
+    if(!socketRet.users) {
       return;
     }
-    socketRet.objs.forEach((obj) => {
+    socketRet.users.forEach((user) => {
       
       //Todo find and update objects
-      $this.objs = [
-        {
-          direction: obj.direction, //0 for, 1 right, 2 down, 3 left
-          posX : 10,
-          posY: 500
-        }];
+      $this.external.users.push(user);
     });
+    console.log($this.external);
 /**
     this.objs = [
       {
@@ -170,41 +189,41 @@ export class Canvas extends Component {
      }
 
     //Direction 0 for up. Sy starts at second as first is standing.
-     sx = obj.direction * sprite.dimension.sWidth;
-     sy = ((slideCount * sprite.dimension.sHeight) + sprite.dimension.sHeight);
+     sx = ((obj.direction <= 0) ? 0 : obj.direction - 1) * sprite.dimension.sWidth;
+     sy = obj.direction == 0 ? 0 : ((slideCount * sprite.dimension.sHeight) + sprite.dimension.sHeight);
 
      switch(obj.direction) { 
-       case 0:
-         posx = obj.posX;
-         posy = obj.posY - (count * vertiScale);
-       break;
        case 1:
-         posx = obj.posX + (count * diagScale);
-         posy = obj.posY - (count * diagScale);
-       break;  
+         posx = obj.posX;
+         posy = obj.posY - vertiScale;
+       break;
        case 2:
-         posx = obj.posX + (count * horiScale);
-         posy = obj.posY;
+         posx = obj.posX + diagScale;
+         posy = obj.posY - diagScale;
        break;  
        case 3:
-         posx = obj.posX + (count * diagScale);
-         posy = obj.posY + (count * diagScale);
-       break;  
-       case 4:
-         posx = obj.posX;
-         posy = obj.posY + (count * vertiScale);
-       break;  
-       case 5:
-         posx = obj.posX - (count * diagScale);
-         posy = obj.posY + (count * diagScale);
-       break;  
-       case 6:
-         posx = obj.posX - (count * horiScale);
+         posx = obj.posX + horiScale;
          posy = obj.posY;
        break;  
+       case 4:
+         posx = obj.posX + diagScale;
+         posy = obj.posY + diagScale;
+       break;  
+       case 5:
+         posx = obj.posX;
+         posy = obj.posY + vertiScale;
+       break;  
+       case 6:
+         posx = obj.posX - diagScale;
+         posy = obj.posY + diagScale;
+       break;  
        case 7:
-         posx = obj.posX - (count * diagScale);
-         posy = obj.posY - (count * diagScale);
+         posx = obj.posX - horiScale;
+         posy = obj.posY;
+       break;  
+       case 8:
+         posx = obj.posX - diagScale;
+         posy = obj.posY - diagScale;
        break;  
        default:
          // stay
@@ -212,6 +231,8 @@ export class Canvas extends Component {
          posy = obj.posY;
        break;
      }
+     obj.posX = posx;
+     obj.posY = posy;
      return {
        spriteX : sx,
        spriteY : sy,
@@ -232,8 +253,14 @@ export class Canvas extends Component {
       //Only if we're drawing clear
       this.canvas.ctx.clearRect(0,0,this.canvas.dimension.cWidth,this.canvas.dimension.cHeight);
 
-      this.objs.forEach(obj => {
-          let objPos = objectMove(obj,count,sprite);
+      let objPos = objectMove(this.user.avatar,count,sprite);
+      
+      //Where S Source (image), D Destination (cavnas) void ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+      canvas.ctx.drawImage(sprite.src,objPos.spriteX,objPos.spriteY,sprite.dimension.sWidth,sprite.dimension.sHeight,objPos.posX,objPos.posY,sprite.dimension.sWidth,sprite.dimension.sHeight);
+      
+
+      this.external.users.forEach(user => {
+          let objPos = objectMove(user.avatar,count,sprite);
           //Where S Source (image), D Destination (cavnas) void ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
           canvas.ctx.drawImage(sprite.src,objPos.spriteX,objPos.spriteY,sprite.dimension.sWidth,sprite.dimension.sHeight,objPos.posX,objPos.posY,sprite.dimension.sWidth,sprite.dimension.sHeight);
       });
@@ -256,10 +283,10 @@ export class Canvas extends Component {
 
 
   directionInput(direction) {
+    this.user.avatar.direction = direction; 
+    
     let message = {
-      objs : [
-        { direction: direction }
-      ]
+      user : this.user
     };
     console.log("sending: "+message);
     this.socketConnector.send(message,(message) => { this.setObjs(message);});
@@ -271,9 +298,10 @@ export class Canvas extends Component {
 
     return (
       <div>
-          <button onClick={setSendDirection(0)}>NN</button>
-          <button onClick={setSendDirection(1)}>NE</button>
-          <button onClick={setSendDirection(2)}>E</button>
+          <button onClick={setSendDirection(0)}>Stop</button>
+          <button onClick={setSendDirection(1)}>NN</button>
+          <button onClick={setSendDirection(2)}>NE</button>
+          <button onClick={setSendDirection(3)}>E</button>
        </div>
       
     );

@@ -20,16 +20,21 @@ class socketClass {
      * Should be private, do not instate externally
      */
     constructor() {  
-
-      let scheme = document.location.protocol === "https:" ? "wss" : "ws";
-      let port = document.location.port ? (":" + document.location.port) : "";
-      let connectionUrl = scheme+"://" + document.location.hostname + port + "/ws" ;
-
-      this.socket = new WebSocket(connectionUrl);
+      this.socket = this._setSocket();
 
       this._messageQueue = [];
       this._messageCount = 0;
-      this.connect(this.socket);
+    }
+
+    _setSocket() { 
+      console.log('setting socket');
+      let scheme = document.location.protocol === "https:" ? "wss" : "ws";
+      let port = document.location.port ? (":" + document.location.port) : "";
+      
+      let connectionUrl = scheme+"://" + document.location.hostname + port + "/ws" ;
+      let socket = new WebSocket(connectionUrl);
+      this.connect(socket);
+      return socket;
     }
 
     /**
@@ -77,9 +82,20 @@ class socketClass {
         message: message,
         key: key
       };
+
       console.log(sendObj);
       console.log(JSON.stringify(sendObj));
-      this.socket.send(JSON.stringify(sendObj));
+
+      //Renew is closed
+      if(!this.socket) {
+        this.socket = this._setSocket();
+        
+        this.socket.onopen = function() {
+          this.socket.send(JSON.stringify(sendObj));  
+        }.bind(this);
+      } else {
+        this.socket.send(JSON.stringify(sendObj));
+      }
     }
 
     connect(socket) {
@@ -92,6 +108,8 @@ class socketClass {
         socket.onclose = function (event) {
           console.log(event.code);
           console.log(event.reason);
+          //Null the socket
+          $this.socket = null; 
         };
         socket.onerror = function(error) {
             console.log(error);
