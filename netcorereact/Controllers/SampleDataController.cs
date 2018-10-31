@@ -4,8 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
-namespace netcorereact.Controllers
+namespace netcorereact.controllers
 {
+    
+    
+    
+    /* 
     [Route("api/[controller]")]
     public class SampleDataController : Controller
     {
@@ -41,4 +45,5 @@ namespace netcorereact.Controllers
             }
         }
     }
+    */
 }
