@@ -59,14 +59,16 @@ namespace netcorereact.services
                                                               offset: 0, 
                                                               count: response.Count);
 
+                Console.WriteLine(webSocket.GetHashCode());
                 await webSocket.SendAsync(returnMessage, response.MessageType, response.EndOfMessage, CancellationToken.None);
             }
         } catch (WebSocketException ex) {
             Console.WriteLine("Failed to receive");
             Console.WriteLine(ex.Message);    
         } finally {
-            try { 
-                await webSocket.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "Closing", CancellationToken.None);   
+            try {
+                Console.WriteLine("Close Finally"); 
+                //await webSocket.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "Closing", CancellationToken.None);   
             } catch (WebSocketException ex) {
                  Console.WriteLine("Close exception");
                  Console.WriteLine(ex.Message);

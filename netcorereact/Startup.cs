@@ -16,6 +16,9 @@ using Newtonsoft.Json;
 using netcorereact.services;
 using netcorereact.containers;
 
+using netcorereact.models;
+using Microsoft.EntityFrameworkCore;
+
 namespace netcorereact
 {
     public class Startup

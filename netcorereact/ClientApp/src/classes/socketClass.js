@@ -92,7 +92,6 @@ class socketClass {
         
         this.socket.onopen = function() {
           this.socket.send(JSON.stringify(sendObj));
-          this.socket.send(" ");   
         }.bind(this);
       } else {
         this.socket.send(JSON.stringify(sendObj));
