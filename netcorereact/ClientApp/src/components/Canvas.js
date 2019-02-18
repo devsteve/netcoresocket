@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+    import React, { Component } from 'react';
 import socketClass from '../classes/socketClass';
 
 export class Canvas extends Component {
@@ -289,19 +289,35 @@ export class Canvas extends Component {
       user : this.user
     };
     console.log("sending: "+message);
-    this.socketConnector.send(message,(message) => { this.setObjs(message);});
+  //  this.socketConnector.send(message,(message) => { this.setObjs(message);});
   }
+
+    directionInputP2(direction) {
+        let $this = this;
+        this.external.users.forEach((user) => {
+            if (user.name === 'P2') {
+                user.avatar.direction = direction;
+                let message = {
+                    user: user
+                };
+                console.log("sending p2: " + message);
+    //            $this.socketConnector.send(message, (message) => { $this.setObjs(message); });
+            }
+        });
+   }
 
   renderControls() {
     const $this = this;
-    let setSendDirection = (direction) => { return function(){ $this.directionInput(direction); }; };
+      let setSendDirection = (direction) => { return function () { $this.directionInput(direction); }; };
+      let setSendDirectionP2 = (direction) => { return function () { $this.directionInputP2(direction); }; };
 
     return (
       <div>
           <button onClick={setSendDirection(0)}>Stop</button>
           <button onClick={setSendDirection(1)}>NN</button>
           <button onClick={setSendDirection(2)}>NE</button>
-          <button onClick={setSendDirection(3)}>E</button>
+            <button onClick={setSendDirection(3)}>E</button>
+            <button onClick={setSendDirectionP2(2)}>E</button>
        </div>
       
     );
